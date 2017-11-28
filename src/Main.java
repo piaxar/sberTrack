@@ -1,3 +1,4 @@
+import java.lang.reflect.Array;
 import java.util.*;
 
 public class Main {
@@ -7,73 +8,101 @@ public class Main {
     }
 }
 
-class MyArrayList<E> implements Iterable<E>, List<E>  {
+class MyArrayList<E> extends AbstractList<E> implements List<E>  {
 
-    private int size;
-
-    private final int INIT_SIZE = 10;
     private Object[] elements;
+    private int size = 0;
 
-    MyArrayList(){
-        elements = new Object[this.INIT_SIZE];
+    public MyArrayList() {
+        this(10);
     }
 
+    public MyArrayList(int initialCapacity) {
+        elements = new Object[initialCapacity];
+    }
+
+    private E elements(int index){
+        return (E) elements[index];
+    }
     @Override
-    public E get(int index){
-        return (E)elements[index];
+    public E get(int index) {
+        return elements(index);
     }
 
     @Override
     public E set(int index, E element) {
+        if (index < 0 || index >= elements.length) throw new IndexOutOfBoundsException();
         elements[index] = element;
-        return element;
+        return elements(index);
+    }
+
+    @Override
+    public boolean add(E e) {
+        ensureCapacity(size+1);
+        elements[size++] = e;
+        return true;
     }
 
     @Override
     public void add(int index, E element) {
         if (index < 0 || index >= elements.length) throw new IndexOutOfBoundsException();
-        elements[size++] = element;
+        ensureCapacity(size+1);
+        System.arraycopy(elements, index, elements, index + 1, size-index);
+        elements[index] = element;
+        size++;
+
     }
 
-    @Override
-    public boolean add(E element){
-        checkSize();
-        add(size, element);
-        return true;
-    }
+    private void ensureCapacity(int minSize){
+        if (minSize > elements.length){
 
-    @Override
-    public boolean remove(Object element){
-        remove(indexOf(element));
-        return true;
-    }
-
-    @Override
-    public E remove(int index){
-        E e = (E)elements[index];
-        elements[index] = null;
-        size--;
-        return e;
-    }
-
-    private void checkSize(){
-        if (size >= elements.length){
-            resize();
+            int newSize = elements.length * 2;
+            if (newSize < minSize){
+                newSize = minSize;
+            }
+            Object[] newElements = new Object[newSize];
+            System.arraycopy(elements, 0, newElements, 0, elements.length);
+            elements = newElements;
         }
+    }
+
+    @Override
+    public E remove(int index) {
+        if (index < 0 || index >= elements.length) throw new IndexOutOfBoundsException();
+        E o = elements(index);
+        System.arraycopy(elements, index + 1, elements, index, size-index-1);
+        elements[size] = null;
+        size--;
+        return o;
     }
 
     @Override
     public int indexOf(Object o) {
-        int ind = -1;
-        for(Object current: elements){
-            ind++;
-            if (o.equals(current)) return ind;
+        int index = -1;
+        for(Object e: elements){
+            index++;
+            if (e.equals(o)){
+                return index;
+            }
         }
-        return -1;
+        return index;
     }
 
-    private void resize(){
-        System.arraycopy(elements, 0, elements, 0, elements.length*2);
+    @Override
+    public boolean addAll(int index, Collection<? extends E> c) {
+        if (index < 0 || index >= elements.length) throw new IndexOutOfBoundsException();
+        Object[] arr = c.toArray();
+        ensureCapacity(arr.length + size);
+        int endIndex = arr.length + size;
+        System.arraycopy(elements, index, elements, endIndex, arr.length);
+        System.arraycopy(elements, index, arr, endIndex, arr.length);
+        size+= arr.length;
+        return true;
+    }
+
+    @Override
+    public boolean addAll(Collection<? extends E> c) {
+        return addAll(size, c);
     }
 
     @Override
@@ -82,99 +111,20 @@ class MyArrayList<E> implements Iterable<E>, List<E>  {
     }
 
     @Override
-    public int size(){
-        return size;
-    }
-
-    @Override
     public boolean contains(Object o) {
-        return (indexOf(o)!=-1);
-    }
-
-    @Override
-    public void clear(){
-        size = 0;
-        elements = new Object[this.INIT_SIZE];
-    }
-
-
-
-
-    // NOT IMPLEMENTED
-    @Override
-    public boolean containsAll(Collection<?> c) {
-        return false;
-    }
-
-    @Override
-    public boolean addAll(Collection<? extends E> c) {
-        return false;
-    }
-
-    @Override
-    public boolean addAll(int index, Collection<? extends E> c) {
-        return false;
-    }
-
-    @Override
-    public boolean removeAll(Collection<?> c) {
-        return false;
-    }
-
-    @Override
-    public boolean retainAll(Collection<?> c) {
-        return false;
-    }
-
-    @Override
-    public int lastIndexOf(Object o) {
-
-    }
-
-    @Override
-    public ListIterator<E> listIterator() {
-        return new MyIterator();
-    }
-
-    @Override
-    public ListIterator<E> listIterator(int index) {
-        return null;
-    }
-
-    @Override
-    public List<E> subList(int fromIndex, int toIndex) {
-        return null;
-    }
-
-    public Iterator<E> iterator(){
-        return new MyIterator();
+        return (indexOf(o) != -1);
     }
 
     @Override
     public Object[] toArray() {
-        return new Object[0];
+        return Arrays.copyOf(elements, size);
     }
 
     @Override
-    public <T> T[] toArray(T[] a) {
-        return null;
+    public int size() {
+        return size;
     }
 
-    private class MyIterator implements java.util.Iterator<E>{
 
-        private int current = 0;
-
-        @Override
-        public boolean hasNext() {
-            return current < size();
-        }
-
-        @Override
-        public E next() {
-            if (!hasNext()) throw new java.util.NoSuchElementException;
-            return elements[current++];
-        }
-    }
 
 }
-
